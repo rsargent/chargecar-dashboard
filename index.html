@@ -1,0 +1,61 @@
+<html>
+<head>
+<script src="js/jquery-1.11.1.min.js"></script>
+<style>
+body {
+  width: 800px;
+  height: 480px;
+  background-color: #222222;
+  color: white;
+  border: 1px solid green;
+  margin: 0px;
+  font-size: 25px;
+}
+</style>
+<script>
+
+
+function draw_series(canvas, series) {
+  ctx = canvas.getContext('2d');
+  ctx.fillStyle='black';
+  ctx.fillRect(0, 0, 800, 130);
+  for (i = 0; i < series.length; i++) {
+    
+  }
+}
+
+function getData() {
+  $.ajax({
+    url: 'http://localhost:8002/get.json',
+    error: function() {
+      setTimeout(getData, 1000);
+    },
+    success: function(a) {
+      console.log(a);
+    }
+  });
+}
+
+function refresh() {
+  draw_series($('#battery')[0], voltages);
+  draw_series($('#current')[0], []);
+  draw_series($('#temperature')[0], []);
+}
+
+function init() {
+  getData();
+  //refresh();
+}
+$(init)
+</script>
+
+</head>
+<body>
+Battery<br>
+<canvas id='battery' width=800 height=130></canvas>
+Current<br>
+<canvas id='current' width=800 height=130></canvas>
+Temperature<br>
+<canvas id='temperature' width=800 height=130></canvas>
+</body>
+</html>
