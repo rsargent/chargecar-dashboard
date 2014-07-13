@@ -10,18 +10,83 @@ body {
   border: 1px solid green;
   margin: 0px;
   font-size: 25px;
+  font-family: arial;
 }
+canvas {
+  display:inline-block;
+  background-color: #444444;
+}
+#voltage {
+ position:relative;
+}
+#voltage div {
+position:absolute;
+right:2px;
+top:-6px;
+font-size:42px
+}
+#current {
+ position:relative;
+}
+#current div {
+position:absolute;
+right:2px;
+top:25%;
+font-size:46px
+}
+#temperature {
+ position:relative;
+}
+#temperature div {
+position:absolute;
+right:2px;
+top:-6px;
+font-size:42px
+}
+  
 </style>
 <script>
 
+var seriesLength = 1000;
+var allSeries = {};
 
-function draw_series(canvas, series) {
-  ctx = canvas.getContext('2d');
-  ctx.fillStyle='black';
-  ctx.fillRect(0, 0, 800, 130);
-  for (i = 0; i < series.length; i++) {
-    
+// All times measured in seconds since start of page
+
+var startTime = new Date().getTime() / 1000.0;
+
+function now() {
+  return new Date().getTime() / 1000.0 - startTime;
+}
+
+function Series(maxLength) {
+  this.maxLength = maxLength;
+  this.times = new Float32Array(new ArrayBuffer(this.maxLength * 4));
+  this.vals = new Float32Array(new ArrayBuffer(this.maxLength * 4));
+  this.length = 0;
+}
+
+Series.prototype.addSample = function(time,val) {
+  if (this.length < this.maxLength) {
+    this.length += 1;
   }
+  for (var i = this.length - 1; i >= 1; i--) {
+    this.times[i] = this.times[i - 1];
+    this.vals[i] = this.vals[i - 1];
+  }
+  this.times[0] = time;
+  this.vals[0] = val;
+}
+
+function ingestData(data) {
+  for (var key in data) {
+    if (key != 'time') {
+      if (!(key in allSeries)) {
+        allSeries[key] = new Series(1000);
+      }
+      allSeries[key].addSample(data.time - startTime, data[key]);
+    }
+  }
+  redraw();
 }
 
 function getData() {
@@ -30,32 +95,179 @@ function getData() {
     error: function() {
       setTimeout(getData, 1000);
     },
-    success: function(a) {
-      console.log(a);
+    success: function(data) {
+      ingestData(data);
+      getData();
     }
   });
 }
 
-function refresh() {
-  draw_series($('#battery')[0], voltages);
-  draw_series($('#current')[0], []);
-  draw_series($('#temperature')[0], []);
+function drawSeries(canvas, series, settings) {
+  var width= $(canvas).width();
+  var height= $(canvas).height();
+  ctx = canvas.getContext('2d');
+  ctx.strokeStyle="#ffffff";
+  
+  var recentWidth = 20;
+  var recentSeconds = 5;
+  var nowTime = now();
+
+  function projectX(i) {
+    var foo =  width - recentWidth - (nowTime - series.times[i]) * settings.timeScale;
+    return foo;
+  }
+  
+  function projectY(i) {
+    return (settings.max - series.vals[i]) * height / (settings.max - settings.min);
+  }
+  
+  if (series.length > 0 && (nowTime - series.times[0]) < recentSeconds) {
+    // Draw bar
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(width, projectY(0));
+    ctx.lineTo(width - recentWidth, projectY(0));
+    ctx.stroke();
+  }
+
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  for (i = 0; i < series.length; i++) {
+    ctx.moveTo(projectX(i), projectY(i));
+    ctx.lineTo(projectX(i)+1, projectY(i));
+  }
+  ctx.stroke();
+}
+
+function drawVoltage() {
+  var canvas = $('#voltage canvas')[0];
+  var width= $(canvas).width();
+  var height= $(canvas).height();
+  ctx = canvas.getContext('2d');
+
+  var settings = {min: 2.3, max: 3.7, timeScale: 1.0};
+  function projectY(v) {
+    return (settings.max - v) * height / (settings.max - settings.min);
+  }
+
+  // Draw canvas background
+  ctx.fillStyle='#660000';
+  ctx.fillRect(0, projectY(2.5), width, projectY(2.3) - projectY(2.5));
+  ctx.fillStyle='#666600';
+  ctx.fillRect(0, projectY(2.7), width, projectY(2.5) - projectY(2.7));
+  ctx.fillStyle='#006600';
+  ctx.fillRect(0, projectY(3.6), width, projectY(2.7) - projectY(3.6));
+  ctx.fillStyle='#660000';
+  ctx.fillRect(0, projectY(3.7), width, projectY(3.6) - projectY(3.7));
+
+  // Draw series
+  drawSeries(canvas, allSeries['minCellVoltage'], settings);
+  drawSeries(canvas, allSeries['avgCellVoltage'], settings);
+  drawSeries(canvas, allSeries['maxCellVoltage'], settings);
+
+  // Draw voltage text
+  $('#voltage div').html(
+    allSeries['maxCellVoltage'].vals[0].toFixed(2) + 'V<br>' +
+    allSeries['avgCellVoltage'].vals[0].toFixed(2) + 'V<br>' +
+    allSeries['minCellVoltage'].vals[0].toFixed(2) + 'V');
+}
+
+function drawCurrent() {
+  var canvas = $('#current canvas')[0];
+  var width= $(canvas).width();
+  var height= $(canvas).height();
+  ctx = canvas.getContext('2d');
+
+  var settings = {min: -50, max: 300, timeScale: 1.0};
+  function projectY(v) {
+    return (settings.max - v) * height / (settings.max - settings.min);
+  }
+
+  // Draw canvas background
+  ctx.fillStyle='#000000';
+  ctx.fillRect(0, projectY(0), width, projectY(-50) - projectY(0));
+  ctx.fillStyle='#006600';
+  ctx.fillRect(0, projectY(30), width, projectY(0) - projectY(30));
+  ctx.fillStyle='#666600';
+  ctx.fillRect(0, projectY(300), width, projectY(30) - projectY(300));
+
+  // Draw series
+  drawSeries(canvas, allSeries['loadCurrentAmps'], settings);
+
+  // Draw text
+  $('#current div').html(allSeries['loadCurrentAmps'].vals[0].toFixed(0) + 'A');
+}
+
+function drawTemperature() {
+  var canvas = $('#temperature canvas')[0];
+  var width= $(canvas).width();
+  var height= $(canvas).height();
+  ctx = canvas.getContext('2d');
+
+  var settings = {min: -20, max: 60, timeScale: 1.0};
+  function projectY(v) {
+    return (settings.max - v) * height / (settings.max - settings.min);
+  }
+
+  // Draw canvas background
+  ctx.fillStyle='#666600';
+  ctx.fillRect(0, projectY(0), width, projectY(-20) - projectY(0));
+  ctx.fillStyle='#006600';
+  ctx.fillRect(0, projectY(45), width, projectY(0) - projectY(45));
+  ctx.fillStyle='#666600';
+  ctx.fillRect(0, projectY(55), width, projectY(45) - projectY(55));
+  ctx.fillStyle='#660000';
+  ctx.fillRect(0, projectY(60), width, projectY(55) - projectY(60));
+
+  // Draw series
+  drawSeries(canvas, allSeries['minCellBoardTempC'], settings);
+  drawSeries(canvas, allSeries['avgCellBoardTempC'], settings);
+  drawSeries(canvas, allSeries['maxCellBoardTempC'], settings);
+
+  // Draw text
+  $('#temperature div').html(
+    formatTemp(allSeries['minCellBoardTempC'].vals[0]) + '<br>' +
+    formatTemp(allSeries['avgCellBoardTempC'].vals[0]) + '<br>' +
+    formatTemp(allSeries['maxCellBoardTempC'].vals[0]));
+}
+
+function formatTemp(c) {
+  return Math.round(c * 9 / 5 + 32) + 'F';
+}
+
+function redraw() {
+  drawVoltage();
+  drawCurrent();
+  drawTemperature();
+  
+  //draw_series($('#current')[0], []);
+  //draw_series($('#temperature')[0], []);
 }
 
 function init() {
   getData();
-  //refresh();
 }
+
 $(init)
 </script>
 
 </head>
 <body>
-Battery<br>
-<canvas id='battery' width=800 height=130></canvas>
-Current<br>
-<canvas id='current' width=800 height=130></canvas>
-Temperature<br>
-<canvas id='temperature' width=800 height=130></canvas>
+<br>
+<div id="voltage" width=100%>
+<canvas width=688 height=130></canvas>
+<div></div>
+</div>
+<br>
+<div id="current" width=100%>
+<canvas width=688 height=130></canvas>
+<div></div>
+</div>
+<br>
+<div id="temperature" width=100%>
+<canvas width=688 height=130></canvas>
+<div></div>
+</div>
+
 </body>
 </html>

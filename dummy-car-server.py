@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 import json
+import math
 import random
 import sys
 import time
@@ -12,14 +13,21 @@ class Handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
     def do_GET(self):
         """Respond to a GET request."""
         if self.path == '/get.json':
-            time.sleep(0.05)
+            time.sleep(0.25)
             self.send_response(200)
             self.send_header("Content-type", "application/json")
             self.end_headers()
-            offset = random.uniform(-.25, .25)
-            data = {'minCellVoltage':2.6 + offset,
-                    'avgCellVoltage':2.8 + offset,
-                    'maxCellVoltage':3.0 + offset}
+            offset = math.pow(math.sin(time.time() * 0.2) * 0.5 + 0.5, 2)
+            data = {
+                'time':time.time(),
+                'minCellVoltage':2.4 + offset * 0.5,
+                'avgCellVoltage':2.6 + offset * 0.5,
+                'maxCellVoltage':2.8 + offset * 0.5,
+                'loadCurrentAmps':-40 + offset * 300,
+                'minCellBoardTempC': -15 + offset * 70,
+                'avgCellBoardTempC': -15 + offset * 70,
+                'maxCellBoardTempC': -15 + offset * 70,
+            }
             self.wfile.write(json.dumps(data))
         else:
             return SimpleHTTPServer.SimpleHTTPRequestHandler.do_GET(self)
