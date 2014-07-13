@@ -5,7 +5,7 @@
 body {
   width: 800px;
   height: 480px;
-  background-color: #222222;
+  background-color: black;
   color: white;
   border: 1px solid green;
   margin: 0px;
@@ -16,32 +16,36 @@ canvas {
   display:inline-block;
   background-color: #444444;
 }
-#voltage {
+#time {
+  font-size:50px;
+  text-align:center;
+}
+#voltage, #current, #temperature {
  position:relative;
 }
 #voltage div {
 position:absolute;
 right:2px;
 top:-6px;
-font-size:42px
-}
-#current {
- position:relative;
+font-size:42px;
+text-align:right;
 }
 #current div {
 position:absolute;
 right:2px;
 top:25%;
-font-size:46px
-}
-#temperature {
- position:relative;
+font-size:46px;
+text-align:right
 }
 #temperature div {
 position:absolute;
 right:2px;
 top:-6px;
-font-size:42px
+font-size:42px;
+text-align:right
+}
+.spacer {
+  height:15px;
 }
   
 </style>
@@ -184,7 +188,7 @@ function drawCurrent() {
   }
 
   // Draw canvas background
-  ctx.fillStyle='#000000';
+  ctx.fillStyle='#666666';
   ctx.fillRect(0, projectY(0), width, projectY(-50) - projectY(0));
   ctx.fillStyle='#006600';
   ctx.fillRect(0, projectY(30), width, projectY(0) - projectY(30));
@@ -226,22 +230,35 @@ function drawTemperature() {
 
   // Draw text
   $('#temperature div').html(
-    formatTemp(allSeries['minCellBoardTempC'].vals[0]) + '<br>' +
+    formatTemp(allSeries['maxCellBoardTempC'].vals[0]) + '<br>' +
     formatTemp(allSeries['avgCellBoardTempC'].vals[0]) + '<br>' +
-    formatTemp(allSeries['maxCellBoardTempC'].vals[0]));
+    formatTemp(allSeries['minCellBoardTempC'].vals[0]));
 }
 
 function formatTemp(c) {
   return Math.round(c * 9 / 5 + 32) + 'F';
 }
 
+function drawTime() {
+  function pad(number) {
+    var r = String(number);
+    if (r.length === 1) {
+      r = '0' + r;
+    }
+    return r;
+  }
+  var time = new Date();
+  $('#time').text(
+    pad(time.getHours()) + ":" +
+    pad(time.getMinutes()) + ":" +
+    pad(time.getSeconds()));
+}
+
 function redraw() {
+  drawTime();
   drawVoltage();
   drawCurrent();
   drawTemperature();
-  
-  //draw_series($('#current')[0], []);
-  //draw_series($('#temperature')[0], []);
 }
 
 function init() {
@@ -253,21 +270,20 @@ $(init)
 
 </head>
 <body>
-<br>
+<div id="time">3:00</div>
 <div id="voltage" width=100%>
 <canvas width=688 height=130></canvas>
 <div></div>
 </div>
-<br>
+<div class="spacer"></div>
 <div id="current" width=100%>
 <canvas width=688 height=130></canvas>
 <div></div>
 </div>
-<br>
+<div class="spacer"></div>
 <div id="temperature" width=100%>
 <canvas width=688 height=130></canvas>
 <div></div>
 </div>
-
 </body>
 </html>

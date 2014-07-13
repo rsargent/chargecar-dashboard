@@ -24,9 +24,9 @@ class Handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
                 'avgCellVoltage':2.6 + offset * 0.5,
                 'maxCellVoltage':2.8 + offset * 0.5,
                 'loadCurrentAmps':-40 + offset * 300,
-                'minCellBoardTempC': -15 + offset * 70,
+                'minCellBoardTempC': -20 + offset * 70,
                 'avgCellBoardTempC': -15 + offset * 70,
-                'maxCellBoardTempC': -15 + offset * 70,
+                'maxCellBoardTempC': -10 + offset * 70,
             }
             self.wfile.write(json.dumps(data))
         else:
