@@ -7,10 +7,13 @@ body {
   height: 480px;
   background-color: black;
   color: white;
-  border: 1px solid green;
+//  border: 1px solid green;
   margin: 0px;
+  border: 0px;
+  padding: 0px;
   font-size: 25px;
   font-family: arial;
+  overflow: hidden;
 }
 canvas {
   display:inline-block;
@@ -136,8 +139,11 @@ function drawSeries(canvas, series, settings) {
 
   ctx.lineWidth = 1;
   ctx.beginPath();
+  var max_line_gap = 2;
   for (i = 0; i < series.length; i++) {
-    ctx.moveTo(projectX(i), projectY(i));
+    if (i == 0 || (series.times[i] - series.times[i - 1]) > max_line_gap) {
+      ctx.moveTo(projectX(i), projectY(i));
+    }
     ctx.lineTo(projectX(i)+1, projectY(i));
   }
   ctx.stroke();
@@ -182,18 +188,18 @@ function drawCurrent() {
   var height= $(canvas).height();
   ctx = canvas.getContext('2d');
 
-  var settings = {min: -50, max: 300, timeScale: 1.0};
+  var settings = {min: -100, max: 600, timeScale: 1.0};
   function projectY(v) {
     return (settings.max - v) * height / (settings.max - settings.min);
   }
 
   // Draw canvas background
   ctx.fillStyle='#666666';
-  ctx.fillRect(0, projectY(0), width, projectY(-50) - projectY(0));
+  ctx.fillRect(0, projectY(0), width, projectY(-100) - projectY(0));
   ctx.fillStyle='#006600';
   ctx.fillRect(0, projectY(30), width, projectY(0) - projectY(30));
   ctx.fillStyle='#666600';
-  ctx.fillRect(0, projectY(300), width, projectY(30) - projectY(300));
+  ctx.fillRect(0, projectY(600), width, projectY(30) - projectY(600));
 
   // Draw series
   drawSeries(canvas, allSeries['loadCurrentAmps'], settings);
